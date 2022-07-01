@@ -1,0 +1,111 @@
+,date,holiday,dow
+0,2021-01-01,New Year's Day,4
+1,2021-01-02,Holiday Weekend,5
+2,2021-01-03,Holiday Weekend,6
+3,2021-01-04,Holiday Weekend,0
+4,2021-01-15,Holiday Weekend,4
+5,2021-01-16,Holiday Weekend,5
+6,2021-01-17,Holiday Weekend,6
+7,2021-01-18,Martin Luther King Jr. Day,0
+8,2021-02-12,Lincoln's Birthday,4
+9,2021-02-13,Holiday Weekend,5
+10,2021-02-14,Holiday Weekend,6
+11,2021-02-15,Washington's Birthday,0
+12,2021-04-02,Good Friday,4
+13,2021-04-03,Holiday Weekend,5
+14,2021-04-04,Holiday Weekend,6
+15,2021-05-28,Holiday Weekend,4
+16,2021-05-29,Holiday Weekend,5
+17,2021-05-30,Holiday Weekend,6
+18,2021-05-31,Memorial Day,0
+19,2021-06-18,Juneteenth National Independence Day (Observed),4
+20,2021-06-19,Juneteenth National Independence Day,5
+21,2021-06-20,Holiday Weekend,6
+22,2021-07-02,Holiday Weekend,4
+23,2021-07-03,Holiday Weekend,5
+24,2021-07-04,Independence Day,6
+25,2021-07-05,Independence Day (Observed),0
+26,2021-09-03,Holiday Weekend,4
+27,2021-09-04,Holiday Weekend,5
+28,2021-09-05,Holiday Weekend,6
+29,2021-09-06,Labor Day,0
+30,2021-10-08,Holiday Weekend,4
+31,2021-10-09,Holiday Weekend,5
+32,2021-10-10,Holiday Weekend,6
+33,2021-10-11,Columbus Day,0
+34,2021-11-02,Election Day,1
+35,2021-11-11,Veterans Day,3
+36,2021-11-22,Holiday Weekend,0
+37,2021-11-23,Holiday Weekend,1
+38,2021-11-24,Holiday Weekend,2
+39,2021-11-25,Thanksgiving,3
+40,2021-11-26,Holiday Weekend,4
+41,2021-11-27,Holiday Weekend,5
+42,2021-11-28,Holiday Weekend,6
+43,2021-12-22,Holiday Weekend,2
+44,2021-12-23,Holiday Weekend,3
+45,2021-12-24,Christmas Day (Observed),4
+46,2021-12-25,Christmas Day,5
+47,2021-12-26,Holiday Weekend,6
+48,2021-12-27,Holiday Weekend,0
+49,2021-12-28,Holiday Weekend,1
+50,2021-12-29,Holiday Weekend,2
+51,2021-12-30,Holiday Weekend,3
+52,2021-12-31,New Year's Day (Observed),4
+53,2022-01-01,New Year's Day,5
+54,2022-01-02,Holiday Weekend,6
+55,2022-01-03,Holiday Weekend,0
+56,2022-01-04,Holiday Weekend,1
+57,2022-01-14,Holiday Weekend,4
+58,2022-01-15,Holiday Weekend,5
+59,2022-01-16,Holiday Weekend,6
+60,2022-01-17,Martin Luther King Jr. Day,0
+61,2022-02-11,Lincoln's Birthday (Observed),4
+62,2022-02-12,Lincoln's Birthday,5
+63,2022-02-13,Holiday Weekend,6
+64,2022-02-15,Susan B. Anthony Day,1
+65,2022-02-18,Holiday Weekend,4
+66,2022-02-19,Holiday Weekend,5
+67,2022-02-20,Holiday Weekend,6
+68,2022-02-21,Washington's Birthday,0
+69,2022-04-15,Good Friday,4
+70,2022-04-16,Holiday Weekend,5
+71,2022-04-17,Holiday Weekend,6
+72,2022-05-27,Holiday Weekend,4
+73,2022-05-28,Holiday Weekend,5
+74,2022-05-29,Holiday Weekend,6
+75,2022-05-30,Memorial Day,0
+76,2022-06-17,Holiday Weekend,4
+77,2022-06-18,Holiday Weekend,5
+78,2022-06-19,Juneteenth National Independence Day,6
+79,2022-06-20,Juneteenth National Independence Day (Observed),0
+80,2022-07-01,Holiday Weekend,4
+81,2022-07-02,Holiday Weekend,5
+82,2022-07-03,Holiday Weekend,6
+83,2022-07-04,Independence Day,0
+84,2022-09-02,Holiday Weekend,4
+85,2022-09-03,Holiday Weekend,5
+86,2022-09-04,Holiday Weekend,6
+87,2022-09-05,Labor Day,0
+88,2022-10-07,Holiday Weekend,4
+89,2022-10-08,Holiday Weekend,5
+90,2022-10-09,Holiday Weekend,6
+91,2022-10-10,Columbus Day,0
+92,2022-11-08,Election Day,1
+93,2022-11-11,Veterans Day,4
+94,2022-11-12,Holiday Weekend,5
+95,2022-11-13,Holiday Weekend,6
+96,2022-11-21,Holiday Weekend,0
+97,2022-11-22,Holiday Weekend,1
+98,2022-11-23,Holiday Weekend,2
+99,2022-11-24,Thanksgiving,3
+100,2022-11-25,Holiday Weekend,4
+101,2022-11-26,Holiday Weekend,5
+102,2022-11-27,Holiday Weekend,6
+103,2022-12-22,Holiday Weekend,3
+104,2022-12-23,Holiday Weekend,4
+105,2022-12-24,Holiday Weekend,5
+106,2022-12-25,Christmas Day,6
+107,2022-12-26,Christmas Day (Observed),0
+108,2022-12-27,Holiday Weekend,1
+109,2022-12-28,Holiday Weekend,2
