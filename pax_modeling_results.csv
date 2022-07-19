@@ -1,0 +1,18 @@
+,Model,Hyperparameters,In-Sample R2,Out-of-Sample R2,Comments
+0,Random Forest,"{'max_depth': 10, 'n_estimators': 100}",0.8110075731433971,0.6983651568684778,wf validation
+1,gradient boost,"{'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 1000}",0.8247794738418075,0.6689930136170534,"third fit, more trees"
+2,adaboost,"{'base_estimator__max_depth': 10, 'learning_rate': 0.001, 'n_estimators': 100}",0.7803199078740222,0.6579914867199999,"wf validation, second fit"
+3,adaboost,"{'base_estimator__max_depth': 9, 'learning_rate': 0.03, 'n_estimators': 150}",0.7960727426184366,0.653159497675678,third fit
+4,adaboost,"{'base_estimator__max_depth': 9, 'learning_rate': 0.01, 'n_estimators': 250}",0.7747734197029572,0.6427667192590869,fourth fit
+5,gradient boost,"{'learning_rate': 0.005, 'max_depth': 5, 'n_estimators': 1000}",0.7637227176856078,0.6406461615107854,fourth fit
+6,gradient boost,"{'learning_rate': 0.06, 'max_depth': 5, 'n_estimators': 100}",0.7813813857018449,0.636613739617399,first fit
+7,gradient boost,"{'learning_rate': 0.1, 'max_depth': 5, 'n_estimators': 50}",0.7711850342340909,0.6298836145240745,second fit
+8,adaboost,"{'base_estimator__max_depth': 9, 'learning_rate': 0.005, 'n_estimators': 150}",0.755069269650014,0.6294642998489867,fifth fit
+9,adaboost,"{'base_estimator__max_depth': 9, 'learning_rate': 0.005, 'n_estimators': 300}",0.7623103898098207,0.6263870859676188,sixth fit - checking lots of stumps
+10,adaboost,"{'base_estimator__max_depth': 8, 'learning_rate': 0.01, 'n_estimators': 100}",0.7150792849690584,0.5941170405619693,"wf validation, first fit"
+11,ridge,{'alpha': 22.229964825261934},0.4999677217392165,0.5776549716275597,
+12,lasso,{'alpha': 0.07196856730011514},0.49540015599683906,0.5765617573776946,
+13,KNN,{'n_neighbors': 17},0.978753048454362,0.5451978249418624,"second fit, no PCA"
+14,ols,,0.50069494503685,0.5434462102700306,
+15,MLP,"{'hidden_layer_sizes': (30, 12), 'learning_rate': 'adaptive', 'learning_rate_init': 0.001, 'max_iter': 500, 'tol': 0.1}",0.7060499337688617,0.5126291473339346,trying a wide range of parameters
+16,knn,,0.9787530484610797,0.34693560427257814,with pca
