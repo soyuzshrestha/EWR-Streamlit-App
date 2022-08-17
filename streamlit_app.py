@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 import matplotlib.pyplot as plt
+import math
 import holidays
 from sodapy import Socrata
 from darts import TimeSeries
@@ -28,7 +29,7 @@ st.title('Newark Airport Terminal B Passenger Forecasting')
 
 
 def file_uploader():
-    uploaded_file = st.sidebar.file_uploader(label='Upload a new flight schedule in .csv format',type='csv')
+    uploaded_file = st.file_uploader(label='Upload a new flight schedule in .csv format',type='csv')
     if uploaded_file is not None:
         fs_con = pd.read_csv(uploaded_file)
 
@@ -37,28 +38,68 @@ def file_uploader():
     
     fs_con = fs_con[['Flight Date','Flight Departing Date Time','Arr Airport Code','International Domestic','Departure Concourse','ICAO Airline','Operating Airline Code','Flight No','Seats','Aircraft Code','Flight Distance','Flight Duration']]
     fs_con['Flight Date'] = pd.to_datetime(fs_con['Flight Date'])
-
-    with st.expander("Review/edit the raw flight schedule data"):
-        grid_return = AgGrid(fs_con[['Flight Date','Flight Departing Date Time','Arr Airport Code','International Domestic','Departure Concourse','ICAO Airline','Operating Airline Code','Flight No','Seats','Aircraft Code','Flight Distance','Flight Duration']], editable=True)
-        fs_con = grid_return['data']
-        fs_con['Flight Date'] = pd.to_datetime(fs_con['Flight Date'])
     
     return fs_con
 
+def queue(servers, lam, mu):
+    p = lam / mu
+    #probability of no passengers in the system
+    pr=0
+    if lam<=servers*mu:
+        for n in range(servers):
+            sss = p**n / math.factorial(n)
+            pr += sss
 
-fs_con = file_uploader()
+        pr = (pr + p**servers/(math.factorial(servers) * (1-(p/servers))))**-1
+
+    # utilization
+    ut = np.min([1,p/servers])
+
+    if ut<1:
+        #average number in queue
+        Lq = pr*p**(servers+1) / (servers * math.factorial(servers) * (1-p/servers)**2)
+        #average number in system
+        Ls = Lq + p
+        # expected average system time
+        try:
+            Ws_10m = Ls / lam
+        except:
+            Ws_10m = 0
+        # expected queue time
+        Wq_10m = Ws_10m - 1/mu
+        
+        # convert wait time from 10-minute increments to 1-minute
+        Ws = Ws_10m * 10
+        Wq = Wq_10m * 10
+    else:
+        Lq = 999
+        Ls = 999
+        Ws = 99
+        Wq = 99
+
+    return ut, Ls, Ws
+
 
 #Sidebar
-date_range = st.sidebar.date_input('Choose the start and end dates of your forecast',value=(dt.date.today() ,dt.date.today() + dt.timedelta(days = 14)), min_value = fs_con['Flight Date'].min(),max_value = fs_con['Flight Date'].max())
-freq = st.sidebar.select_slider(label='Forecast frequency', options = ['10 minutes','30 minutes', '1 hour','3 hours','12 hours','1 day'])
-freq_dict = {'10 minutes':'10t','30 minutes':'30t', '1 hour':'1H','3 hours':'3H','12 hours':'12H','1 day':'1D'}
-freq_con = freq_dict[freq]
-covid_scenario = st.sidebar.radio(label = 'Choose a COVID scenario',options = ['Current COVID levels', 'Peak COVID level', 'Low COVID level'], help = 'Peak is based on Omicron surge in early 2022, assuming no changes to vaccination levels.')
-weather_scenario = st.sidebar.radio(label = 'Choose a weather scenario',options = ['Normal','Moderate','Severe'], help = 'Normal is based on current forecasts and historical averages. Moderate is based on rain and reduced visibility. Severe is based on blizzard/hurricane conditions.')
-
+with st.sidebar:
+    with st.form('scenarios',clear_on_submit = False):
+        fs_con = file_uploader()
+        date_range = st.date_input('Choose the start and end dates of your forecast',value=(dt.date.today() ,dt.date.today() + dt.timedelta(days = 14)), min_value = fs_con['Flight Date'].min(),max_value = fs_con['Flight Date'].max())
+        freq = st.select_slider(label='Forecast frequency', options = ['10 minutes','30 minutes', '1 hour','3 hours','12 hours','1 day'])
+        freq_dict = {'10 minutes':'10t','30 minutes':'30t', '1 hour':'1H','3 hours':'3H','12 hours':'12H','1 day':'1D'}
+        freq_con = freq_dict[freq]
+        covid_scenario = st.radio(label = 'Choose a COVID scenario',options = ['Current COVID levels', 'Peak COVID level', 'Low COVID level'], help = 'Peak is based on Omicron surge in early 2022, assuming no changes to vaccination levels.')
+        weather_scenario = st.radio(label = 'Choose a weather scenario',options = ['Normal','Moderate','Severe'], help = 'Normal is based on current forecasts and historical averages. Moderate is based on rain and reduced visibility. Severe is based on blizzard/hurricane conditions.')
+        submit_button = st.form_submit_button("Submit")
 
 S_date = pd.to_datetime(date_range[0])
 E_date = pd.to_datetime(date_range[1])
+
+
+with st.expander("Review/edit the raw flight schedule data"):
+    grid_return = AgGrid(fs_con[['Flight Date','Flight Departing Date Time','Arr Airport Code','International Domestic','Departure Concourse','ICAO Airline','Operating Airline Code','Flight No','Seats','Aircraft Code','Flight Distance','Flight Duration']], editable=True)
+    fs_con = grid_return['data']
+    fs_con['Flight Date'] = pd.to_datetime(fs_con['Flight Date'])
 
 @st.cache(allow_output_mutation=True)
 def load_lookups():
@@ -115,7 +156,7 @@ weather_df = load_weather(weather_hist=weather_hist)
 
 
 
-# @st.cache(allow_output_mutation=True)
+@st.cache(allow_output_mutation=True)
 def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, weather_scen):
 
     #filter for B concourses
@@ -387,6 +428,13 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
     ts = ts.rename({'pax_C1':'pax_B1','pax_C2':'pax_B2','pax_C3':'pax_B3'},axis=1)
     ts[['pax_B1','pax_B2','pax_B3']] = ts[['pax_B1','pax_B2','pax_B3']].fillna(0).clip(lower=0)
 
+    # add queueing data
+    tsa_hourly_capacity = 125/6 #per lane
+    ts[['B1_utilization','B1_length','B1_waittime']] = ts['pax_B1'].apply(lambda x: queue(3, x, tsa_hourly_capacity)).to_list()
+    ts[['B2_utilization','B2_length','B2_waittime']] = ts['pax_B2'].apply(lambda x: queue(3, x, tsa_hourly_capacity)).to_list()
+    ts[['B3_utilization','B3_length','B3_waittime']] = ts['pax_B3'].apply(lambda x: queue(3, x, tsa_hourly_capacity)).to_list()
+
+
 
     ts['Total TSA Passengers'] = ts[['pax_B1','pax_B2','pax_B3']].sum(axis=1)
 
@@ -478,20 +526,67 @@ def combined_agg(ts, freq):
 
     return ts_ag
     
-col1, col2 = st.columns(2)
-with col1:
-    xpoints = st.multiselect(label = '',options = ['Total Arriving Passengers','Total TSA Passengers','Total Departing Passengers'], default = ['Total Arriving Passengers','Total TSA Passengers','Total Departing Passengers'])
-    comb_agg = combined_agg(ts, freq=freq_con)
-    st.line_chart(comb_agg.loc[(comb_agg.index >= S_date) & (comb_agg.index <= E_date),xpoints])
+# col1, col2 = st.columns(2)
+# with col1:
+#     xpoints = st.multiselect(label = '',options = ['Total Arriving Passengers','Total TSA Passengers','Total Departing Passengers'], default = ['Total Arriving Passengers','Total TSA Passengers','Total Departing Passengers'])
+#     comb_agg = combined_agg(ts, freq=freq_con)
+#     st.line_chart(comb_agg.loc[(comb_agg.index >= S_date) & (comb_agg.index <= E_date),xpoints])
 
-with col2:
-    zones = st.multiselect(label = 'Zones',options = ['landside','airside_B1','airside_B2','airside_B3'], default = ['landside','airside_B1','airside_B2','airside_B3'])
-    st.area_chart(ts.loc[(ts.index >= S_date) & (ts.index <= E_date),zones])
+# with col2:
+#     zones = st.multiselect(label = 'Zones',options = ['landside','airside_B1','airside_B2','airside_B3'], default = ['landside','airside_B1','airside_B2','airside_B3'])
+#     st.area_chart(ts.loc[(ts.index >= S_date) & (ts.index <= E_date),zones])
 
 #total passengers in the airport at any given time
 # st.area_chart(ts.loc[(ts.index >= S_date) & (ts.index <= E_date),'terminal_total'])
 
+xpoints = st.multiselect(label = '',options = ['Total Arriving Passengers','Total TSA Passengers','Total Departing Passengers'], default = ['Total Arriving Passengers','Total TSA Passengers','Total Departing Passengers'])
+comb_agg = combined_agg(ts, freq=freq_con)
+st.line_chart(comb_agg.loc[(comb_agg.index >= S_date) & (comb_agg.index <= E_date),xpoints])
+
+@st.cache
+def ts_tsa_agg(ts, freq):
+
+    ts_ag = ts.reset_index()[['DT_sched','pax_B1','pax_B2','pax_B3']].groupby(pd.Grouper(key="DT_sched", freq=freq)).sum()
+
+    return ts_ag
+
+@st.cache
+def ts_arr_agg(ts, freq):
+
+    ts_ag = ts.reset_index()[['DT_sched','AT_PAX','Parking#','FHV#']].groupby(pd.Grouper(key="DT_sched", freq=freq)).sum()
+
+    return ts_ag
+
+
 tab_arr, tab_tsa, tab_dep = st.tabs(["Airport Access", "Security", "Departures"])
+
+with tab_arr:
+    mode = st.multiselect(label = 'Transportation Mode',options = ['AirTrain','Private Car (Parking)','For-Hire Vehicle'], default = ['AirTrain','Private Car (Parking)','For-Hire Vehicle'])
+    mode_dict = {'AirTrain':'AT_PAX','Private Car (Parking)':'Parking#','For-Hire Vehicle':'FHV#'}
+    mode_conv = [mode_dict[v] for v in mode]
+    ts_agg_arr = ts_arr_agg(ts=ts, freq = freq_con)
+    st.area_chart(ts_agg_arr.loc[(ts_agg_arr.index >= S_date) & (ts_agg_arr.index <= E_date),mode_conv])    
+
+    
+
+with tab_tsa:
+    conc_2 = st.multiselect(label = 'Concourse ',options = ['B1','B2','B3'], default = ['B1','B2','B3'])
+    conc2_dict = {'B1':'pax_B1','B2':'pax_B2','B3':'pax_B3'}
+    conc2_conv = [conc2_dict[v] for v in conc_2]
+    ts_agg_tsa = ts_tsa_agg(ts=ts, freq = freq_con)
+    st.area_chart(ts_agg_tsa.loc[(ts_agg_tsa.index >= S_date) & (ts_agg_tsa.index <= E_date),conc2_conv])      
+
+    
+
+    wt_c = [f'{c}_waittime' for c in conc_2]
+    ln_c = [f'{c}_length' for c in conc_2]
+    ut_c = [f'{c}_utilization' for c in conc_2]
+
+    lanes = st.select_slider(label='Number of TSA Lanes', options = ['1','2', '3','4','5'])
+    st.line_chart(ts.loc[(ts.index >= S_date) & (ts.index <= E_date),wt_c]) 
+    st.line_chart(ts.loc[(ts.index >= S_date) & (ts.index <= E_date),ln_c]) 
+    st.line_chart(ts.loc[(ts.index >= S_date) & (ts.index <= E_date),ut_c]) 
+
 
 with tab_dep:
     pax_type = st.selectbox(label = 'Passenger Type',options = ['pax_total','pax_bus','pax_lei'])
@@ -504,33 +599,3 @@ with tab_dep:
 
     st.area_chart(filt, width = 500, height = 300)
     # st.write(filt)
-
-@st.cache
-def ts_arr_agg(ts, freq):
-
-    ts_ag = ts.reset_index()[['DT_sched','AT_PAX','Parking#','FHV#']].groupby(pd.Grouper(key="DT_sched", freq=freq)).sum()
-
-    return ts_ag
-
-with tab_arr:
-    mode = st.multiselect(label = 'Transportation Mode',options = ['AirTrain','Private Car (Parking)','For-Hire Vehicle'], default = ['AirTrain','Private Car (Parking)','For-Hire Vehicle'])
-    mode_dict = {'AirTrain':'AT_PAX','Private Car (Parking)':'Parking#','For-Hire Vehicle':'FHV#'}
-    mode_conv = [mode_dict[v] for v in mode]
-    ts_agg_arr = ts_arr_agg(ts=ts, freq = freq_con)
-    st.area_chart(ts_agg_arr.loc[(ts_agg_arr.index >= S_date) & (ts_agg_arr.index <= E_date),mode_conv])    
-
-
-@st.cache
-def ts_tsa_agg(ts, freq):
-
-    ts_ag = ts.reset_index()[['DT_sched','pax_B1','pax_B2','pax_B3']].groupby(pd.Grouper(key="DT_sched", freq=freq)).sum()
-
-    return ts_ag
-    
-
-with tab_tsa:
-    conc_2 = st.multiselect(label = 'Concourse ',options = ['B1','B2','B3'], default = ['B1','B2','B3'])
-    conc2_dict = {'B1':'pax_B1','B2':'pax_B2','B3':'pax_B3'}
-    conc2_conv = [conc2_dict[v] for v in conc_2]
-    ts_agg_tsa = ts_tsa_agg(ts=ts, freq = freq_con)
-    st.area_chart(ts_agg_tsa.loc[(ts_agg_tsa.index >= S_date) & (ts_agg_tsa.index <= E_date),conc2_conv])       
