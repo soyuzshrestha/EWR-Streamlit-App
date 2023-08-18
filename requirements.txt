@@ -1,0 +1,7 @@
+pandas==1.4.2
+holidays==0.14.2
+sodapy==2.1.1
+darts==0.20.0
+# streamlit==1.11.0
+streamlit-aggrid==0.2.3.post2
+statsforecast==0.5.6
