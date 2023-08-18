@@ -103,10 +103,10 @@ with st.expander("Review/edit the raw flight schedule data"):
 
 @st.cache_data()
 def load_lookups():
-    aircraft_codes = pd.read_csv(r'LookupTables\Aircraft_Lookup.csv')
-    airport_lookup = pd.read_csv(r'LookupTables\airport-codes.csv')
-    al_lookup = pd.read_csv(r'LookupTables\Airlines Mapping.csv')
-    weather_hist = pd.read_csv(r'FlightDelay\Data\weather_2021_2022.csv')
+    aircraft_codes = pd.read_csv(r'LookupTables/Aircraft_Lookup.csv')
+    airport_lookup = pd.read_csv(r'LookupTables/airport-codes.csv')
+    al_lookup = pd.read_csv(r'LookupTables/Airlines Mapping.csv')
+    weather_hist = pd.read_csv(r'FlightDelay/Data/weather_2021_2022.csv')
     weather_hist = weather_hist.drop_duplicates(subset=['Date','Military Hour'])
 
     return aircraft_codes, airport_lookup, al_lookup, weather_hist
@@ -331,7 +331,7 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
     fs_preds['airline_type'] = fs_preds['airline_type'].replace({'TR':0,'LC':1}).astype(int)
     fs_preds = pd.get_dummies(fs_preds,columns = ['Region','Time Category','DOW_l','month','ADG'])
 
-    SS_X = joblib.load(r'Trained Models\DepartingPAX_models\fs_standard_scaler.pkl')
+    SS_X = joblib.load(r'Trained Models/DepartingPAX_models/fs_standard_scaler.pkl')
     fs_preds_sc = fs_preds.copy()
     fs_preds_sc[['Flight Distance','first_dose_ct', 'series_complete_cnt', 'case_count_7day_avg',
         'hosp_count_7day_avg', 'death_count_7day_avg', 'Seats']] = SS_X.transform(
@@ -339,7 +339,7 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
         'hosp_count_7day_avg', 'death_count_7day_avg', 'Seats']]
         )
 
-    rf = joblib.load(r'Trained Models\DepartingPAX_models\rf.pkl')
+    rf = joblib.load(r'Trained Models/DepartingPAX_models/rf.pkl')
     fs[['pax_total','pax_bus','pax_lei']] = rf.predict(fs_preds_sc)
 
 
@@ -401,8 +401,8 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
     ts = ts.merge(sts, how='left',left_on = 'DT_sched',right_on = 'DT_sched')
     ts[['Seats_LC','Seats_TR']] = ts[['Seats_LC','Seats_TR']].fillna(0)
 
-    model_arrpax = joblib.load(r'Trained Models\ArrivingPAX_models\arrpax_regr.pkl')
-    scaler_arrpax = joblib.load(r'Trained Models\ArrivingPAX_models\arrpax_covariate_scaler.pkl')
+    model_arrpax = joblib.load(r'Trained Models/ArrivingPAX_models/arrpax_regr.pkl')
+    scaler_arrpax = joblib.load(r'Trained Models/ArrivingPAX_models/arrpax_covariate_scaler.pkl')
     arr_covs = ts[['DT_sched','season','cat','holiday','pax_intl_bus','pax_intl_lei','pax_dom_bus','pax_dom_lei','first_dose_ct','series_complete_cnt']]
     arr_covs = arr_covs.drop_duplicates()
     arr_covs = arr_covs.set_index('DT_sched')
@@ -423,8 +423,8 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
         'pax_B3_intl','Seats_TR','Seats_LC','holiday','Total Arriving Passengers']]
     tsa_covs = tsa_covs.drop_duplicates()
 
-    model_tsapax = joblib.load(r'Trained Models\TSA_models\concourse_lr.pkl')
-    scaler_tsapax = joblib.load(r'Trained Models\TSA_models\tsa_covariate_scaler.pkl')
+    model_tsapax = joblib.load(r'Trained Models/TSA_models/concourse_lr.pkl')
+    scaler_tsapax = joblib.load(r'Trained Models/TSA_models/tsa_covariate_scaler.pkl')
 
     tsa_covs_ts = TimeSeries.from_dataframe(tsa_covs,fillna_value=True,freq='10T')
     tsa_covs_sc = scaler_tsapax.transform(tsa_covs_ts)
