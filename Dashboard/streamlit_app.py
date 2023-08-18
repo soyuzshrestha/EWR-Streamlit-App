@@ -34,7 +34,7 @@ def file_uploader():
         fs_con = pd.read_csv(uploaded_file)
 
     else:
-        fs_con = pd.read_csv(r'C:\Users\Gabriel\OneDrive\CUSP\Spring 2022 Classes\Capstone\Data\2022 Data\Flight Schedule w Concourse_2021.01-2022.11.csv')
+        fs_con = pd.read_csv('FlightDelay\Data\Flight_Schedule_with_Concourse.csv')
     
     fs_con = fs_con[['Flight Date','Flight Departing Date Time','Arr Airport Code','International Domestic','Departure Concourse','ICAO Airline','Operating Airline Code','Flight No','Seats','Aircraft Code','Flight Distance','Flight Duration']]
     fs_con['Flight Date'] = pd.to_datetime(fs_con['Flight Date'])
@@ -84,7 +84,7 @@ def queue(servers, lam, mu):
 with st.sidebar:
     with st.form('scenarios',clear_on_submit = False):
         fs_con = file_uploader()
-        date_range = st.date_input('Choose the start and end dates of your forecast',value=(dt.date.today() ,dt.date.today() + dt.timedelta(days = 14)), min_value = fs_con['Flight Date'].min(),max_value = fs_con['Flight Date'].max())
+        date_range = st.date_input('Choose the start and end dates of your forecast',value=(dt.datetime(2021, 1, 1).date(),dt.datetime(2022, 9, 9).date()), min_value = fs_con['Flight Date'].min(),max_value = fs_con['Flight Date'].max())
         freq = st.select_slider(label='Forecast frequency', options = ['10 minutes','30 minutes', '1 hour','3 hours','12 hours','1 day'])
         freq_dict = {'10 minutes':'10t','30 minutes':'30t', '1 hour':'1H','3 hours':'3H','12 hours':'12H','1 day':'1D'}
         freq_con = freq_dict[freq]
@@ -101,12 +101,12 @@ with st.expander("Review/edit the raw flight schedule data"):
     fs_con = grid_return['data']
     fs_con['Flight Date'] = pd.to_datetime(fs_con['Flight Date'])
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data()
 def load_lookups():
-    aircraft_codes = pd.read_csv(r'C:\Users\Gabriel\OneDrive\CUSP\Spring 2022 Classes\Capstone\Data\LookupTables\Aircraft_Lookup.csv')
-    airport_lookup = pd.read_csv(r'C:\Users\Gabriel\OneDrive\CUSP\Spring 2022 Classes\Capstone\Data\LookupTables\airport-codes.csv')
-    al_lookup = pd.read_csv(r'C:\Users\Gabriel\OneDrive\CUSP\Spring 2022 Classes\Capstone\Data\LookupTables\Airlines Mapping.csv')
-    weather_hist = pd.read_csv(r'C:\Users\Gabriel\OneDrive\CUSP\Spring 2022 Classes\Capstone\Data\2022 Data\weather_2021_2022.csv')
+    aircraft_codes = pd.read_csv(r'LookupTables\Aircraft_Lookup.csv')
+    airport_lookup = pd.read_csv(r'LookupTables\airport-codes.csv')
+    al_lookup = pd.read_csv(r'LookupTables\Airlines Mapping.csv')
+    weather_hist = pd.read_csv(r'FlightDelay\Data\weather_2021_2022.csv')
     weather_hist = weather_hist.drop_duplicates(subset=['Date','Military Hour'])
 
     return aircraft_codes, airport_lookup, al_lookup, weather_hist
@@ -114,38 +114,45 @@ def load_lookups():
 aircraft_codes, airport_lookup, al_lookup, weather_hist = load_lookups()
 
 
-@st.cache
+@st.cache_data
 def load_weather(weather_hist):
     #15-day forecast
-    td = dt.date.today()
-    td_15 = td + dt.timedelta(days = 15)
-    td = td.strftime('%y-%m-%d')
-    td_15 = td_15.strftime('%y-%m-%d')
+    td = dt.datetime(2022, 9, 9).date()
+    td_15 = dt.datetime(2022, 9, 23).date()
+    td = td.strftime('20%y-%m-%d')
+    td_15 = td_15.strftime('20%y-%m-%d')
 
-    try:
-        request_string = f'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/07114/{td}/{td_15}?unitGroup=us&elements=datetime%2Ctemp%2Cprecip%2Cprecipprob%2Cprecipcover%2Cpreciptype%2Csnow%2Csnowdepth%2Cwindgust%2Cwindspeed%2Cvisibility%2Csevererisk%2Cconditions%2Cdescription&include=hours&key=A32Z3KQNFYC38FNX7SM8M7G9P&contentType=csv'
+    #historical weather
+    td_min = dt.datetime(2021, 1, 1).date()
+    td_max = dt.datetime(2022, 9, 9).date()
+    td_min = td_min.strftime('20%y-%m-%d')
+    td_max = td_max.strftime('20%y-%m-%d')
 
-        weather = pd.read_csv(request_string)
-        weather['datetime'] = pd.to_datetime(weather['datetime'])
-        weather_options = [
-            weather.precip == 0,
-            weather.precip <= .1,
-            weather.precip <= .2,
-            weather.precip > .2,]
-        choices = [0,1,2,3]
 
-        weather['cat'] = np.select(weather_options, choices)
-    except:
-        weather = pd.read_csv(r'C:\Users\Gabriel\OneDrive\CUSP\Spring 2022 Classes\Capstone\Data\2022 Data\aug2022_forecast.csv')
-        weather['datetime'] = pd.to_datetime(weather['datetime'])
+    request_string = f'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/07114/{td}/{td_15}?unitGroup=us&elements=datetime%2Ctemp%2Cprecip%2Cprecipprob%2Cprecipcover%2Cpreciptype%2Csnow%2Csnowdepth%2Cwindgust%2Cwindspeed%2Cvisibility%2Csevererisk%2Cconditions%2Cdescription&include=hours&key=A32Z3KQNFYC38FNX7SM8M7G9P&contentType=csv'
+    request_string_hist = f'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/07114/{td_min}/{td_max}?unitGroup=us&elements=datetime%2Ctemp%2Cprecip%2Cprecipprob%2Cprecipcover%2Cpreciptype%2Csnow%2Csnowdepth%2Cwindgust%2Cwindspeed%2Cvisibility%2Csevererisk%2Cconditions%2Cdescription&include=hours&key=A32Z3KQNFYC38FNX7SM8M7G9P&contentType=csv'
 
-    
+    weather = pd.read_csv(request_string)
+    weather['datetime'] = pd.to_datetime(weather['datetime'])
+    weather_options = [
+    weather.precip == 0,
+    weather.precip <= .1,
+    weather.precip <= .2,
+    weather.precip > .2,]
+    choices = [0,1,2,3]
+    weather['cat'] = np.select(weather_options, choices)
+
+    weather_hist = pd.read_csv(request_string_hist)
+    weather_hist['datetime'] = pd.to_datetime(weather_hist['datetime'])
+    weather_options_hist = [
+    weather_hist.precip == 0,
+    weather_hist.precip <= .1,
+    weather_hist.precip <= .2,
+    weather_hist.precip > .2,]
+    choices_hist = [0,1,2,3]
+    weather_hist['cat'] = np.select(weather_options_hist, choices_hist)
+
     #combine weather_hist and weather forecast
-    weather_hist['Date'] = pd.to_datetime(weather_hist['Date'])
-    weather_hist['datetime'] = pd.to_datetime({'year':weather_hist.Date.dt.year,'month':weather_hist.Date.dt.month,'day':weather_hist.Date.dt.day,'hour':weather_hist['Military Hour']})
-    weather_hist = weather_hist[['datetime','Precipitation (Inches)', 'Visibility (Miles)', 'Weather Description','cat']].rename({
-        'Precipitation (Inches)':'precip', 'Visibility (Miles)':'visibility', 'Weather Description':'conditions'
-    },axis=1)
     weather = pd.concat([weather_hist,weather],axis=0)
 
     weather['dup'] = weather['datetime'].duplicated()
@@ -156,7 +163,7 @@ weather_df = load_weather(weather_hist=weather_hist)
 
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data()
 def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, weather_scen):
 
     #filter for B concourses
@@ -242,14 +249,14 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
     # 4) https://www.avcodes.co.uk/acrtypes.asp
     # 5) The FAA Airplane Design Groups (ADG), which is used to classify plane size based on wingspan and height. It is a good enough approximation for seat capacity categories. https://www.faa.gov/airports/engineering/aircraft_char_database/
     # Note that there is not always a 1-to-1 match, and a few of the BTS values did not correspond perfectly with the ICAO/IATA codes.
-    
+
     fs = pd.merge(left=fs, right=aircraft_codes,how='left',left_on='Aircraft Code', right_on = 'IATA Aircraft Code')
     ## Merge destination region
     # the destination data is available at https://ourairports.com/data/
     # the regions were manually assigned based on Gabe's discretion. Domestic flights are divided into northeast, southeast, midwest, plains, and west coast/pacific.
     # Canada is its own region. Central America and Caribbean were grouped together with South America. Otherwise, the region corresponds to the continent.
 
-    
+
     fs = pd.merge(fs, airport_lookup[['iata_code','Region']],left_on = 'Arr Airport Code',right_on = 'iata_code', how='left')
     ## Merge airline category
     # Airlines were grouped into low-cost carriers (LC) and traditional carriers (TR)
@@ -286,7 +293,7 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
     fs['hosp_count_7day_avg'].fillna(most_recent_hosp_count_7day_avg.values[0], inplace=True)
     fs['death_count_7day_avg'].fillna(most_recent_death_count_7day_avg.values[0], inplace=True)
 
-    
+
 
     if covid_scen == 'Peak COVID level':
         #average case, hospitalization, death counts from omicron period, December 15, 2021 - January 31, 2022
@@ -324,7 +331,7 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
     fs_preds['airline_type'] = fs_preds['airline_type'].replace({'TR':0,'LC':1}).astype(int)
     fs_preds = pd.get_dummies(fs_preds,columns = ['Region','Time Category','DOW_l','month','ADG'])
 
-    SS_X = joblib.load(r'DepartingPAX_models\fs_standard_scaler.pkl')
+    SS_X = joblib.load(r'Trained Models\DepartingPAX_models\fs_standard_scaler.pkl')
     fs_preds_sc = fs_preds.copy()
     fs_preds_sc[['Flight Distance','first_dose_ct', 'series_complete_cnt', 'case_count_7day_avg',
         'hosp_count_7day_avg', 'death_count_7day_avg', 'Seats']] = SS_X.transform(
@@ -332,9 +339,9 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
         'hosp_count_7day_avg', 'death_count_7day_avg', 'Seats']]
         )
 
-    rf = joblib.load(r'DepartingPAX_models\rf.pkl')
+    rf = joblib.load(r'Trained Models\DepartingPAX_models\rf.pkl')
     fs[['pax_total','pax_bus','pax_lei']] = rf.predict(fs_preds_sc)
-    
+
 
 
 
@@ -360,7 +367,7 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
     tsts['datehour'] = tsts['DT_sched'].dt.floor('h')
 
     tsts = tsts.merge(weather[['datetime','cat']],how='left',left_on='datehour',right_on = 'datetime')
-    
+
     #beyond the 15-day forecast assume weather will be normal by fillna with 1
     tsts['cat'] = tsts['cat'].fillna(1)
 
@@ -393,16 +400,15 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
 
     ts = ts.merge(sts, how='left',left_on = 'DT_sched',right_on = 'DT_sched')
     ts[['Seats_LC','Seats_TR']] = ts[['Seats_LC','Seats_TR']].fillna(0)
-    
-    model_arrpax = joblib.load(r'ArrivingPAX_models\arrpax_regr.pkl')
-    scaler_arrpax = joblib.load(r'ArrivingPAX_models\arrpax_covariate_scaler.pkl')
-    arr_covs = ts[['DT_sched','season','cat','holiday','pax_intl_bus','pax_intl_lei','pax_dom_bus','pax_dom_lei','first_dose_ct','series_complete_cnt']].set_index('DT_sched')
-    
-    
+
+    model_arrpax = joblib.load(r'Trained Models\ArrivingPAX_models\arrpax_regr.pkl')
+    scaler_arrpax = joblib.load(r'Trained Models\ArrivingPAX_models\arrpax_covariate_scaler.pkl')
+    arr_covs = ts[['DT_sched','season','cat','holiday','pax_intl_bus','pax_intl_lei','pax_dom_bus','pax_dom_lei','first_dose_ct','series_complete_cnt']]
+    arr_covs = arr_covs.drop_duplicates()
+    arr_covs = arr_covs.set_index('DT_sched')
+
     arr_covs_ts = TimeSeries.from_dataframe(arr_covs,freq='10T')
     arr_covs_sc = scaler_arrpax.transform(arr_covs_ts)
-
-    
 
     ttss = model_arrpax.predict(n=arr_covs.loc[arr_covs.index >= pd.to_datetime('2021-12-01')].shape[0] - 30,future_covariates = arr_covs_sc).pd_dataframe()
     ts = ts.merge(ttss, how='left', left_on='DT_sched',right_index=True)
@@ -414,12 +420,13 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
     ts['Total Departing Passengers'] = ts[['pax_intl_bus','pax_intl_lei','pax_dom_bus','pax_dom_lei']].sum(axis=1)
 
     tsa_covs = ts[['pax_B1_dom', 'pax_B2_dom', 'pax_B3_dom', 'pax_B1_intl', 'pax_B2_intl',
-       'pax_B3_intl','Seats_TR','Seats_LC','holiday','Total Arriving Passengers']]
-    
-    model_tsapax = joblib.load(r'TSA_models\concourse_lr.pkl')
-    scaler_tsapax = joblib.load(r'TSA_models\tsa_covariate_scaler.pkl')
+        'pax_B3_intl','Seats_TR','Seats_LC','holiday','Total Arriving Passengers']]
+    tsa_covs = tsa_covs.drop_duplicates()
 
-    tsa_covs_ts = TimeSeries.from_dataframe(tsa_covs,freq='10T')
+    model_tsapax = joblib.load(r'Trained Models\TSA_models\concourse_lr.pkl')
+    scaler_tsapax = joblib.load(r'Trained Models\TSA_models\tsa_covariate_scaler.pkl')
+
+    tsa_covs_ts = TimeSeries.from_dataframe(tsa_covs,fillna_value=True,freq='10T')
     tsa_covs_sc = scaler_tsapax.transform(tsa_covs_ts)
 
 
@@ -444,7 +451,7 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
 
     #this is cumulative number of people in landside (between arrival and tsa) and airside (between tsa and departure)
     ts = ts.reset_index()
-    ts['dt_shift'] = ts['DT_sched'].shift(18)   #shift by 3 hours so that the count resets every night at 3am
+    ts['dt_shift'] = ts['index'].shift(18)   #shift by 3 hours so that the count resets every night at 3am
     ts[[
         'arr_cum','tsa_cum', 'tsa_B1_cum','tsa_B2_cum','tsa_B3_cum','dep_cum', 'dep_B1_cum', 'dep_B2_cum', 'dep_B3_cum'
         ]] = ts[[
@@ -459,7 +466,7 @@ def paxfs(df, aircraft_codes, airport_lookup, al_lookup, weather,covid_scen, wea
 
     ts = ts.drop(['arr_cum','tsa_cum', 'tsa_B1_cum','tsa_B2_cum','tsa_B3_cum','dep_cum', 'dep_B1_cum', 'dep_B2_cum', 'dep_B3_cum','dt_shift'],axis=1)
 
-    ts = ts.set_index('DT_sched')
+    ts = ts.set_index('index')
 
     # st.write(ts)
 
@@ -469,7 +476,7 @@ fs, ts = paxfs(fs_con, aircraft_codes=aircraft_codes, airport_lookup=airport_loo
 
 
 
-@st.cache
+@st.cache_data
 def agg_result(data,frequency):
     
     data = data.reset_index()
@@ -519,10 +526,10 @@ def filter_result(agg_data,start_date,end_date, paxtype, conc, destination, airl
 
     return data_filtered
 
-@st.cache(suppress_st_warning=True)
+@st.cache_data()
 def combined_agg(ts, freq):
 
-    ts_ag = ts.reset_index()[['DT_sched','Total Arriving Passengers','Total TSA Passengers', 'Total Departing Passengers']].groupby(pd.Grouper(key="DT_sched", freq=freq)).sum()
+    ts_ag = ts.reset_index()[['index','Total Arriving Passengers','Total TSA Passengers', 'Total Departing Passengers']].groupby(pd.Grouper(key="index", freq=freq)).sum()
 
     return ts_ag
     
@@ -543,17 +550,17 @@ xpoints = st.multiselect(label = '',options = ['Total Arriving Passengers','Tota
 comb_agg = combined_agg(ts, freq=freq_con)
 st.line_chart(comb_agg.loc[(comb_agg.index >= S_date) & (comb_agg.index <= E_date),xpoints])
 
-@st.cache
+@st.cache_data
 def ts_tsa_agg(ts, freq):
 
-    ts_ag = ts.reset_index()[['DT_sched','pax_B1','pax_B2','pax_B3']].groupby(pd.Grouper(key="DT_sched", freq=freq)).sum()
+    ts_ag = ts.reset_index()[['index','pax_B1','pax_B2','pax_B3']].groupby(pd.Grouper(key="index", freq=freq)).sum()
 
     return ts_ag
 
-@st.cache
+@st.cache_data
 def ts_arr_agg(ts, freq):
 
-    ts_ag = ts.reset_index()[['DT_sched','AT_PAX','Parking#','FHV#']].groupby(pd.Grouper(key="DT_sched", freq=freq)).sum()
+    ts_ag = ts.reset_index()[['index','AT_PAX','Parking#','FHV#']].groupby(pd.Grouper(key="index", freq=freq)).sum()
 
     return ts_ag
 
