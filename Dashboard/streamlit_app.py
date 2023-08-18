@@ -34,7 +34,7 @@ def file_uploader():
         fs_con = pd.read_csv(uploaded_file)
 
     else:
-        fs_con = pd.read_csv('FlightDelay\Data\Flight_Schedule_with_Concourse.csv')
+        fs_con = pd.read_csv('FlightDelay/Data/Flight_Schedule_with_Concourse.csv')
     
     fs_con = fs_con[['Flight Date','Flight Departing Date Time','Arr Airport Code','International Domestic','Departure Concourse','ICAO Airline','Operating Airline Code','Flight No','Seats','Aircraft Code','Flight Distance','Flight Duration']]
     fs_con['Flight Date'] = pd.to_datetime(fs_con['Flight Date'])
